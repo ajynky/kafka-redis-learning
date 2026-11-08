@@ -96,7 +96,7 @@ POST /orders -> Producer -> Kafka topic "orders" -> Consumer -> Redis -> GET /or
 - [x] .env (root, NOT committed) read by docker-compose (${POSTGRES_*}) and Spring (spring.config.import optional:file:../../.env[.properties]); yaml has placeholders only
 - [x] Root .gitignore (.env, **/target/, .idea/, *.iml, _to_delete/, *.zip) + .env.example (committed, placeholder values)
 - [x] First commit 4daa41f pushed to GitHub (origin/main)
-- [ ] Root README: how to run (copy .env.example -> .env, docker compose up -d, IntelliJ VM options, Grafana) - optional
+- [x] Root README: how to run (setup, schema SQL, run, try, observability, commands)
 
 ## Next plan (production-style microservices)
 - [ ] MS0 Clear span names per listener (payment.process, notification.send) - quick win before split
