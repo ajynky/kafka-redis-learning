@@ -1,7 +1,7 @@
 # Kafka + Spring Boot + Redis Learning Project
 
 ## Status
-- Current step: Central logging done -> next: Flyway (last in Next plan) or Good to have
+- Current step: pushed to GitHub -> next MS0 (clear span names) or root README
 - Last worked on: 8 Nov 2026 (2 instances, clientIdPrefix, own postgresDataSource bean, ShedLock verified)
 - Next session: `docker compose up -d` (kafka, redis, postgres), run app with profile local
 
@@ -91,6 +91,12 @@ POST /orders -> Producer -> Kafka topic "orders" -> Consumer -> Redis -> GET /or
   - [x] CL5 Link POST (trace A) to Kafka flow (trace B): option 1 log orderId+eventId in OrderService
   - [x] CL6 option 2: trace_parent column in outbox -> relay continues trace A (one trace POST -> notification)
 - [ ] (last) Flyway versioned migrations (V1__...sql, flyway_schema_history, ddl-auto validate)
+
+## Secrets + GitHub (done 8 Nov 2026)
+- [x] .env (root, NOT committed) read by docker-compose (${POSTGRES_*}) and Spring (spring.config.import optional:file:../../.env[.properties]); yaml has placeholders only
+- [x] Root .gitignore (.env, **/target/, .idea/, *.iml, _to_delete/, *.zip) + .env.example (committed, placeholder values)
+- [x] First commit 4daa41f pushed to GitHub (origin/main)
+- [ ] Root README: how to run (copy .env.example -> .env, docker compose up -d, IntelliJ VM options, Grafana) - optional
 
 ## Next plan (production-style microservices)
 - [ ] MS0 Clear span names per listener (payment.process, notification.send) - quick win before split

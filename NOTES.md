@@ -782,3 +782,21 @@ docker logs otel-lgtm --tail 5
 - Tempo node graph (order 414): http post /orders -> outbox.publish -> orders send -> orders process x2 (order-service, payment-service) -> Redis set/exists spans (Lettuce auto-instrumented) -> payments send -> payments process -> set
 - orders process self time ~420ms while Redis spans ~2ms = lazy first Redis connection (seen earlier in logs). "orders send" negative self time = async children end after the send span (normal for messaging)
 - Tempo: use "Trace ID" tab for an ID (TraceQL tab expects a query)
+
+## Secrets management (local)
+- .env in root (never committed): POSTGRES_DB/USER/PASSWORD. docker compose reads .env automatically -> ${POSTGRES_PASSWORD}. Check: docker compose config
+- Spring: spring.config.import: "optional:file:../../.env[.properties]" (path relative to working dir = app folder; [.properties] = read KEY=value as properties; optional = fall back to real env vars, e.g. production/K8s Secrets/Vault)
+- yaml: url .../${POSTGRES_DB}, username ${POSTGRES_USER}, password ${POSTGRES_PASSWORD}
+- .env.example committed with placeholders; root .gitignore excludes .env, target, .idea, *.iml, _to_delete, *.zip
+- Verify before push: git add -n . (dry run) + grep for password
+```
+docker compose config
+git init
+git status --short
+git add -n .
+git add .
+git commit -m "..."
+git branch -M main
+git remote add origin https://github.com/<user>/<repo>.git
+git push -u origin main
+```
