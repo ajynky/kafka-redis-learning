@@ -1,7 +1,7 @@
 # Kafka + Spring Boot + Redis Learning Project
 
 ## Status
-- Current step: PROJECT COMPLETE (8 Nov 2026). Remaining items below are optional. Next: new production-style project idea
+- Current step: PROJECT COMPLETE (8 Nov 2026). Next: new production-style microservices project (see carry-over list)
 - Last worked on: 8 Nov 2026 (2 instances, clientIdPrefix, own postgresDataSource bean, ShedLock verified)
 - Next session: `docker compose up -d` (kafka, redis, postgres), run app with profile local
 
@@ -90,7 +90,6 @@ POST /orders -> Producer -> Kafka topic "orders" -> Consumer -> Redis -> GET /or
   - [x] CL4 Grafana Explore -> Loki: logs visible, search by text/traceId
   - [x] CL5 Link POST (trace A) to Kafka flow (trace B): option 1 log orderId+eventId in OrderService
   - [x] CL6 option 2: trace_parent column in outbox -> relay continues trace A (one trace POST -> notification)
-- [ ] (last) Flyway versioned migrations (V1__...sql, flyway_schema_history, ddl-auto validate)
 
 ## Secrets + GitHub (done 8 Nov 2026)
 - [x] .env (root, NOT committed) read by docker-compose (${POSTGRES_*}) and Spring (spring.config.import optional:file:../../.env[.properties]); yaml has placeholders only
@@ -111,11 +110,14 @@ POST /orders -> Producer -> Kafka topic "orders" -> Consumer -> Redis -> GET /or
 - [ ] MS8 End-to-end check: POST -> one trace across 3 services in Tempo; scale payment-service to 2 replicas -> partition split
 - [ ] MS9 Production concerns: Actuator health/readiness, config via env/secrets, Flyway per service DB
 
+## Carry over to the new production-style microservices project
+- Atomic idempotency claim: SETNX processed:<group>:<eventId> IN_PROGRESS before side effect (safe during rebalance)
+- Flyway per service DB from day one (V1__...sql, flyway_schema_history, ddl-auto validate)
+- Readiness group includes db/redis (dependency down -> stop traffic, not restart)
+- One service.name per service (clear Tempo graph); trace_parent in outbox; Kafka observation flags
+- Secrets via .env / env vars / K8s Secrets; outbox + ShedLock + cleanup; consumer lag alert
+
 ## Good to have (later)
-- [ ] Test DB for test profile (Testcontainers Postgres + @ServiceConnection recommended; or H2). Until then: mvn clean verify -DskipTests. OrderFlowTest also needs Redis/ProcessedEventRepository mocked
-- [ ] Containerize app: Dockerfile (eclipse-temurin:25-jre, ENTRYPOINT java -Duser.timezone=UTC -jar), app service in docker-compose, profile with service names (kafka:9092 needs KRaft listener config for in-network access, redis, postgres) instead of localhost
-- [ ] Logback DuplicateMessageFilter to drop repeated log lines (Kafka reconnect flood)
-- [ ] Spring Boot Actuator health checks + consumer lag metrics/alerts (detect outages without reading logs)
-- [x] Configure Mockito as -javaagent in maven-surefire-plugin (removes dynamic agent warning, needed for future JDKs)
-- [ ] Test: DLT test with embedded Kafka (mock save throws -> record in orders-dlt, KafkaTestUtils.getSingleRecord)
-- [ ] Test: MockMvc tests for API errors (404, 400, 405, 503)
+- [x] GH4 Spring Boot Actuator health checks + consumer lag metrics (detect outages without reading logs)
+- [-] GH7 Flyway - moved to the new production-style microservices project
+- Removed (user choice 8 Nov 2026): Testcontainers test DB, MockMvc tests, DLT test, DuplicateMessageFilter, Containerize app

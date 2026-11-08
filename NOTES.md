@@ -800,3 +800,22 @@ git branch -M main
 git remote add origin https://github.com/<user>/<repo>.git
 git push -u origin main
 ```
+
+## GH4 Actuator
+- spring-boot-starter-actuator; management.endpoints.web.exposure.include: health,metrics; endpoint.health.show-details: always (local only)
+- /actuator/health components: db, redis, diskSpace, ping, ssl, livenessState, readinessState. No Kafka health indicator in Spring Boot
+- Postgres stopped -> db DOWN -> overall DOWN (HTTP 503); readiness stayed UP (readiness group does not include db by default)
+```
+curl -s http://localhost:8080/actuator/health
+curl -s http://localhost:8080/actuator/health/readiness
+```
+- Readiness vs liveness (understood, not implemented): management.endpoint.health.group.readiness.include: readinessState,db,redis -> dependency down = stop traffic (readiness 503), not restart pod (liveness 200)
+- Consumer lag: kafka.consumer.fetch.manager.records.lag.max (actuator /actuator/metrics/...; Prometheus kafka_consumer_fetch_manager_records_lag_max{service_name="kafka-redis-demo"}). Series per client_id + partition + topic, plus one per client without partition (max over its partitions). Alert idea: lag > 1000 for 5m
+- Consumer lag: kafka.consumer.fetch.manager.records.lag.max (actuator) = kafka_consumer_fetch_manager_records_lag_max (Prometheus). Series per client_id + partition + topic, plus one per client_id without partition (max over its partitions). Auto-published by Spring Kafka + Micrometer, no code
+- Alert idea: max by (client_id) (kafka_consumer_fetch_manager_records_lag_max{service_name="kafka-redis-demo"}) > 1000 for 5m
+- Metrics pushed every 1m (OtlpMeterRegistry) -> graph points only while app runs
+
+## Flyway / Liquibase (concept only, implement in next project)
+- DB schema version control: numbered SQL files in db/migration (V1__..., V2__...), applied once each, in order; history in flyway_schema_history; DB lock -> one pod migrates
+- Replaces manual ALTER/CREATE + README SQL step; changes reviewed in Git; Hibernate ddl-auto validate
+- Flyway = plain SQL, simple; Liquibase = XML/YAML/SQL changelogs, built-in rollback
