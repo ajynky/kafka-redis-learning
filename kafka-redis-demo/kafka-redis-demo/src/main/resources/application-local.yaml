@@ -1,0 +1,74 @@
+spring:
+  application:
+    name: kafka-redis-demo
+  config:
+    import:
+      - "optional:file:../../.env[.properties]"
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      auto-offset-reset: latest
+    producer:
+      properties:
+        max.block.ms: 5000
+    properties:
+      reconnect.backoff.max.ms: 30000
+    template:
+      observation-enabled: true
+    listener:
+      observation-enabled: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2s
+
+app:
+  datasource:
+    postgres:
+      url: jdbc:postgresql://localhost:5432/${POSTGRES_DB}
+      username: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      configuration:
+        connection-timeout: 2000
+  kafka:
+    consumers:
+      order: { group-id: order-service }
+      payment: { group-id: payment-service }
+      notification: { group-id: notification-service }
+    topics:
+      orders: { name: orders, partitions: 3 }
+      orders-dlt: { name: orders-dlt, partitions: 3 }
+      payments: { name: payments, partitions: 2 }
+    retry:
+      interval: 2000
+      max-retries: 2
+  outbox:
+    poll-interval: 1000
+    cleanup-cron: "0 0 3 * * *"
+    retention: 7d
+
+logging:
+  level:
+    com.learning: debug
+    org.apache.kafka: warn
+    org.springframework.kafka.support.LoggingProducerListener: off
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  opentelemetry:
+    logging:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/logs
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces

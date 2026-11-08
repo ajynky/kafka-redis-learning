@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: kafka-redis-demo
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+    consumer:
+      auto-offset-reset: earliest
+    producer:
+      properties:
+        max.block.ms: 5000
+    properties:
+      reconnect.backoff.max.ms: 30000
+
+app:
+  kafka:
+    consumers:
+      order:
+        group-id: order-service
+      payment:
+        group-id: payment-service
+      notification:
+        group-id: notification-service
+    topics:
+      orders: { name: orders, partitions: 3 }
+      orders-dlt: { name: orders-dlt, partitions: 3 }
+      payments: { name: payments, partitions: 2 }
+    retry:
+      interval: 2000
+      max-retries: 2

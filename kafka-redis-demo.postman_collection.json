@@ -1,0 +1,435 @@
+{
+  "info": {
+    "name": "Kafka Redis Demo",
+    "description": "All API calls used while learning (Steps 6, 9, error handling, 12). Base URL is the collection variable {{baseUrl}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "5b3f6d2e-8c1a-4e7b-9a42-6f1d0e7c3b21"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Orders - happy path",
+      "item": [
+        {
+          "name": "Send order (POST /orders)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/orders?orderId=1&orderData=Laptop",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "orderId",
+                  "value": "1"
+                },
+                {
+                  "key": "orderData",
+                  "value": "Laptop"
+                }
+              ]
+            },
+            "description": "Expected: 200 'Order Message sent orderId: 1'. Log shows partition + offset."
+          }
+        },
+        {
+          "name": "Send order with empty value",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/orders?orderId=8&orderData=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "orderId",
+                  "value": "8"
+                },
+                {
+                  "key": "orderData",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Empty value is allowed. Then GET /orders/8 -> 200 with value \"\"."
+          }
+        },
+        {
+          "name": "Read order (GET /orders/{id})",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/orders/6",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "6"
+              ]
+            },
+            "description": "Expected: 200 {\"key\":\"6\",\"value\":\"Mouse\"}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Error handling",
+      "item": [
+        {
+          "name": "404 - order not found",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/orders/99",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "99"
+              ]
+            },
+            "description": "Expected: 404 ProblemDetail 'Order 99 not found' (OrderNotFoundException)."
+          }
+        },
+        {
+          "name": "400 - missing orderId",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/orders?orderData=Pen",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "orderData",
+                  "value": "Pen"
+                }
+              ]
+            },
+            "description": "Expected: 400 'Required parameter orderId is not present.' (inherited from ResponseEntityExceptionHandler)."
+          }
+        },
+        {
+          "name": "405 - wrong method",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Expected: 405 + header Allow: POST (inherited)."
+          }
+        },
+        {
+          "name": "404 - unknown URL",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "abc"
+              ]
+            },
+            "description": "Expected: 404 ProblemDetail (inherited)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Infra down tests (Step 12)",
+      "item": [
+        {
+          "name": "503 - Kafka down (POST)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/orders?orderId=11&orderData=Bag",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "orderId",
+                  "value": "11"
+                },
+                {
+                  "key": "orderData",
+                  "value": "Bag"
+                }
+              ]
+            },
+            "description": "First run: docker stop kafka. Expected: 503 after ~5 s (OrderPublishException). After: docker start kafka."
+          }
+        },
+        {
+          "name": "503 - Redis down (GET)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/orders/6",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "6"
+              ]
+            },
+            "description": "First run: docker stop redis. Expected: 503 'Order storage unavailable'. After: docker start redis."
+          }
+        },
+        {
+          "name": "DLT test - Redis down (POST)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/orders?orderId=9&orderData=Tablet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "orderId",
+                  "value": "9"
+                },
+                {
+                  "key": "orderData",
+                  "value": "Tablet"
+                }
+              ]
+            },
+            "description": "First run: docker stop redis. Expected: 200 (Kafka is up), consumer retries 3 times ~2 s apart, then message goes to orders-dlt. Check: kafka-console-consumer --topic orders-dlt --from-beginning. After: docker start redis."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Final project (Step 14): Order -> Payment -> Notification",
+      "item": [
+        {
+          "name": "Order 24 - paid (POST)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/orders?orderId=24&orderData=Watch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "orderId",
+                  "value": "24"
+                },
+                {
+                  "key": "orderData",
+                  "value": "Watch"
+                }
+              ]
+            },
+            "description": "PaymentConsumer -> PAID. Log: 'Notify customer: order 24 confirmed'"
+          }
+        },
+        {
+          "name": "Order 24 - status (GET)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/orders/24/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "24",
+                "status"
+              ]
+            },
+            "description": "Expected: 200 {\"orderId\":\"24\",\"status\":\"PAID\"}. Called instantly it may briefly show CREATED"
+          }
+        },
+        {
+          "name": "Order 25 - failed (POST)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/orders?orderId=25&orderData=failCard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "orderId",
+                  "value": "25"
+                },
+                {
+                  "key": "orderData",
+                  "value": "failCard"
+                }
+              ]
+            },
+            "description": "orderData contains 'fail' -> FAILED. Log: 'Notify customer: payment FAILED for order 25'"
+          }
+        },
+        {
+          "name": "Order 25 - status (GET)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/orders/25/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "25",
+                "status"
+              ]
+            },
+            "description": "Expected: 200 {\"orderId\":\"25\",\"status\":\"FAILED\"}"
+          }
+        },
+        {
+          "name": "Status - unknown order (GET)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/orders/999/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "999",
+                "status"
+              ]
+            },
+            "description": "Expected: 404 ProblemDetail 'Order 999 not found'"
+          }
+        }
+      ],
+      "description": "Flow: POST /orders -> orders topic -> OrderConsumer (Redis order + status CREATED) and PaymentConsumer -> payments topic (PAID/FAILED) -> NotificationConsumer (notify + status). Run each POST, then its status GET."
+    },
+    {
+      "name": "5. Transactional Outbox (Step 15)",
+      "item": [
+        {
+          "name": "Order 101 - saved to orders + outbox (POST)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/orders?orderId=101&orderData=Phone",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "orderId",
+                  "value": "101"
+                },
+                {
+                  "key": "orderData",
+                  "value": "Phone"
+                }
+              ]
+            },
+            "description": "Expect 200 'Order accepted orderId: 101'. Rows in orders + outbox (published_at null)"
+          }
+        },
+        {
+          "name": "Order 101 again - duplicate (POST)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/orders?orderId=101&orderData=Phone",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "orderId",
+                  "value": "101"
+                },
+                {
+                  "key": "orderData",
+                  "value": "Phone"
+                }
+              ]
+            },
+            "description": "Expect 409 ProblemDetail 'Order 101 already exists'"
+          }
+        },
+        {
+          "name": "Order 102 - Postgres stopped (POST)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/orders?orderId=102&orderData=Tab",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "orderId",
+                  "value": "102"
+                },
+                {
+                  "key": "orderData",
+                  "value": "Tab"
+                }
+              ]
+            },
+            "description": "Run 'docker stop postgres' first. Expect 503 'Order storage unavailable' within ~2s (hikari connection-timeout)"
+          }
+        }
+      ]
+    }
+  ]
+}

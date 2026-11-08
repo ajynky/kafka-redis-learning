@@ -1,0 +1,13 @@
+# secrets
+.env
+
+# build / IDE
+**/target/
+.idea/
+*.iml
+
+# local leftovers
+_to_delete/
+*.zip
+
+CLAUDE_INSTRUCTIONS.md
