@@ -1,7 +1,7 @@
 # Kafka + Spring Boot + Redis Learning Project
 
 ## Status
-- Current step: pushed to GitHub -> next MS0 (clear span names) or root README
+- Current step: PROJECT COMPLETE (8 Nov 2026). Remaining items below are optional. Next: new production-style project idea
 - Last worked on: 8 Nov 2026 (2 instances, clientIdPrefix, own postgresDataSource bean, ShedLock verified)
 - Next session: `docker compose up -d` (kafka, redis, postgres), run app with profile local
 
@@ -98,11 +98,12 @@ POST /orders -> Producer -> Kafka topic "orders" -> Consumer -> Redis -> GET /or
 - [x] First commit 4daa41f pushed to GitHub (origin/main)
 - [x] Root README: how to run (setup, schema SQL, run, try, observability, commands)
 
-## Next plan (production-style microservices)
-- [ ] MS0 Clear span names per listener (payment.process, notification.send) - quick win before split
+## Next plan (production-style microservices) - CANCELLED 8 Nov 2026 (will build a new production-style project idea instead; atomic claim MS3a idea carried to the new project)
+- [-] MS0 Clear span names - SKIPPED (user choice; separate service.name per service after split solves it)
 - [ ] MS1 Maven multi-module: parent pom + modules order-service, payment-service, notification-service (+ shared "contracts" module for topic names, header names like eventId)
 - [ ] MS2 order-service: POST/GET APIs, Postgres (orders + outbox), OutboxRelay, OrderConsumer (Redis read model) - own spring.application.name
 - [ ] MS3 payment-service: PaymentConsumer + idempotency (own Redis keys), publishes payments
+  - [ ] MS3a Atomic claim: SETNX processed:<group>:<eventId> "IN_PROGRESS" BEFORE paying (only one consumer wins during rebalance), then set "DONE"; on failure delete claim so retry can run
 - [ ] MS4 notification-service: NotificationConsumer, status updates
 - [ ] MS5 Data ownership: each service owns its data (no shared tables); decide who owns order-status (order-service consumes payments vs notification writes)
 - [ ] MS6 Each service: own port, profile, service.name -> separate nodes in Tempo node graph / Service Graph
